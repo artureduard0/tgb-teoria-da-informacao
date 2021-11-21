@@ -12,6 +12,8 @@ import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 
 public class App {
+    private static int NUM_ROUNDS = 4;
+
     public static void main(String[] args) throws Exception {
         try {
             boolean executar = true;
@@ -215,7 +217,7 @@ public class App {
 
     private static void encrypt(ArrayList<byte[]> blocos) {
         int[] t1 = {};
-        boolean inverter = false;
+        int roundAtual = 0;
 
         ArrayList<byte[]> blocosEncriptados = new ArrayList<>();
         for (int i = 0; i < blocos.size(); i++) {
@@ -225,8 +227,18 @@ public class App {
             byte[] right = new byte[3];
             System.arraycopy(blocos.get(i), 3, right, 0, 3);
 
-            blocosEncriptados.add(inverter ? round(left, right) : round(right, left));
-            inverter = !inverter;
+            boolean inverter = false;
+
+            while (roundAtual < NUM_ROUNDS) {
+                if (inverter) {
+                    left = right;
+                    right = left;
+                }
+
+                blocosEncriptados.add(round(left, right));
+                inverter = !inverter;
+                roundAtual++;
+            }
         }
     }
 
