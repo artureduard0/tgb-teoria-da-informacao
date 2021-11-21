@@ -5,6 +5,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 
 import javax.swing.JFileChooser;
@@ -19,8 +20,8 @@ public class App {
                 Object[] opcoes = { "Criptografar", "Descriptografar" };
 
                 int opcao = JOptionPane.showOptionDialog(null, "Escolha o que executar: ",
-                        "Trabalho GB - Cifrador simétrico de bloco", JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE,
-                        null, opcoes, opcoes[0]);
+                        "Trabalho GB - Cifrador simétrico de bloco", JOptionPane.DEFAULT_OPTION,
+                        JOptionPane.INFORMATION_MESSAGE, null, opcoes, opcoes[0]);
 
                 if (opcao != -1) {
                     JFileChooser chooser = new JFileChooser();
@@ -30,27 +31,47 @@ public class App {
                     int retorno = chooser.showOpenDialog(null);
 
                     if (retorno != 1) {
-                        // File arquivo = chooser.getSelectedFile();
-                        // Path caminho = arquivo.toPath();
-                        // String nomeArquivo = caminho.toString().replaceFirst("[.][^.]+$", "");
+                        File arquivo = chooser.getSelectedFile();
+                        Path caminho = arquivo.toPath();
+                        String nomeArquivo = caminho.toString().replaceFirst("[.][^.]+$", "");
 
-                        // byte[] data = read(caminho);
+                        byte[] data = read(caminho);
 
                         // * Key scheduling
 
                         String key = "";
 
-                        while(key.length() != 4 ){
+                        while (key.length() != 4) {
                             key = JOptionPane.showInputDialog(null, "Informe a chave de ciframento de 4 bytes: ",
                                     "Trabalho GB - Cifrador simétrico de bloco", JOptionPane.QUESTION_MESSAGE);
                         }
 
                         String[] strings = keyScheduling(key);
 
+                        ArrayList<byte[]> blocos = new ArrayList<>();
+                        int indexBlocos = 0;
+                        byte[] bloco = new byte[6];
 
+                        for (int i = 0; i < data.length; i++) {
+                            // se atingir os 6 bytes do bloco ou não houver blocos o suficiente para fechar
+                            // os 6, adicionar.
+                            if (indexBlocos == 6 || i + 1 == data.length) {
+                                indexBlocos = 0;
+                                blocos.add(bloco);
+                                bloco = new byte[6];
+                            }
 
+                            bloco[indexBlocos++] = data[i];
+                        }
+
+                        for (int i = 0; i < blocos.size(); i++) {
+                            for (int j = 0; j < blocos.get(i).length; j++) {
+                                System.out.println((int) blocos.get(i)[j]);
+                            }
+                        }
 
                         if (opcao == 0) {
+                            encrypt(blocos);
                         } else {
 
                         }
@@ -107,11 +128,13 @@ public class App {
             keyBinary += s;
         }
         System.out.println("\nChave em binário: " + keyBinary);
-        
-        int[] table = {32, 28, 24, 20, 16, 12, 8, 4, 29, 25, 21, 17, 13, 9, 5, 1, 31, 27, 23, 19, 15, 11, 7, 3, 30, 26, 22, 18, 14, 10, 6, 2};
-        // int[] tableInverted = {16, 32, 24, 8, 15, 31, 23, 7, 14, 30, 22, 6, 13, 29, 21, 5, 12, 28, 20, 4, 11, 27, 19, 3, 10, 26, 18, 2, 9, 25, 17, 1};
+
+        int[] table = { 32, 28, 24, 20, 16, 12, 8, 4, 29, 25, 21, 17, 13, 9, 5, 1, 31, 27, 23, 19, 15, 11, 7, 3, 30, 26,
+                22, 18, 14, 10, 6, 2 };
+        // int[] tableInverted = {16, 32, 24, 8, 15, 31, 23, 7, 14, 30, 22, 6, 13, 29,
+        // 21, 5, 12, 28, 20, 4, 11, 27, 19, 3, 10, 26, 18, 2, 9, 25, 17, 1};
         String permutedKey = permutation(keyBinary, table, false, 0);
-        
+
         String[] strings = split(permutedKey);
         System.out.println("-----------------------------------");
         System.out.println("Chaves em 8 bits: " + Arrays.toString(strings));
@@ -124,7 +147,7 @@ public class App {
 
         strings = rightShift(values, 8);
 
-        int[] expansionTable = {8, 1, 5, 2, 4, 6, 5, 2, 7, 1, 8, 7, 6, 3, 3, 4};
+        int[] expansionTable = { 8, 1, 5, 2, 4, 6, 5, 2, 7, 1, 8, 7, 6, 3, 3, 4 };
         System.out.println("-----------------------------------");
         for (int i = 0; i < strings.length; i++) {
             System.out.println("Subchave " + i + ", expansão de 8 > 16 bits");
@@ -149,24 +172,24 @@ public class App {
         return strings;
     }
 
-    private static String permutation(String key, int[] table, boolean isExpansion, int size){
+    private static String permutation(String key, int[] table, boolean isExpansion, int size) {
 
         StringBuilder s = new StringBuilder(key);
         StringBuilder sPermuted;
 
-        if(isExpansion){
+        if (isExpansion) {
             sPermuted = new StringBuilder();
             sPermuted.setLength(size);
             for (int i = 0; i < table.length; i++) {
-                char character = s.charAt(table[i] -1);
+                char character = s.charAt(table[i] - 1);
                 sPermuted.setCharAt(i, character);
             }
-        } 
+        }
 
-        else{    
+        else {
             sPermuted = new StringBuilder(key);
             for (int i = 0; i < s.length(); i++) {
-                int newPosition = table[i] - 1 ;
+                int newPosition = table[i] - 1;
                 char value = s.charAt(i);
                 sPermuted.setCharAt(newPosition, value);
             }
@@ -176,17 +199,40 @@ public class App {
         return sPermuted.toString();
     }
 
-    private static String[] rightShift(int[] values, int size){
+    private static String[] rightShift(int[] values, int size) {
         String[] strings = new String[4];
         System.out.println("-----------------------------------");
         for (int i = 0; i < values.length; i++) {
             int n = values[i];
-            n = (n >>> 1) | (n << (size-1));
+            n = (n >>> 1) | (n << (size - 1));
             String s = toBinary(n, size);
             s = s.substring(s.length() - size);
             strings[i] = s;
             System.out.println("Subchave " + i + " após >>> " + strings[i]);
         }
         return strings;
+    }
+
+    private static void encrypt(ArrayList<byte[]> blocos) {
+        int[] t1 = {};
+        boolean inverter = false;
+
+        ArrayList<byte[]> blocosEncriptados = new ArrayList<>();
+        for (int i = 0; i < blocos.size(); i++) {
+            byte[] left = new byte[3];
+            System.arraycopy(blocos.get(i), 0, left, 0, 3);
+
+            byte[] right = new byte[3];
+            System.arraycopy(blocos.get(i), 3, right, 0, 3);
+
+            blocosEncriptados.add(inverter ? round(left, right) : round(right, left));
+            inverter = !inverter;
+        }
+    }
+
+    private static byte[] round(byte[] left, byte[] right) {
+        byte[] retorno = new byte[6];
+
+        return retorno;
     }
 }
