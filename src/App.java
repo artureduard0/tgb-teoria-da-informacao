@@ -48,7 +48,7 @@ public class App {
                                     "Trabalho GB - Cifrador simétrico de bloco", JOptionPane.QUESTION_MESSAGE);
                         }
 
-                        String[] strings = keyScheduling(key);
+                        String[] chave = keyScheduling(key);
 
                         ArrayList<byte[]> blocos = new ArrayList<>();
                         int indexBlocos = 0;
@@ -73,7 +73,7 @@ public class App {
                         }
 
                         if (opcao == 0) {
-                            encrypt(blocos);
+                            encrypt(blocos, chave);
                         } else {
 
                         }
@@ -215,7 +215,7 @@ public class App {
         return strings;
     }
 
-    private static void encrypt(ArrayList<byte[]> blocos) {
+    private static void encrypt(ArrayList<byte[]> blocos, String[] chave) {
         int[] t1 = {};
         int roundAtual = 0;
 
@@ -235,16 +235,43 @@ public class App {
                     right = left;
                 }
 
-                blocosEncriptados.add(round(left, right));
+                blocosEncriptados.add(round(left, right, chave, roundAtual));
                 inverter = !inverter;
                 roundAtual++;
             }
         }
     }
 
-    private static byte[] round(byte[] left, byte[] right) {
+    private static byte[] round(byte[] left, byte[] right, String[] chave, int round) {
         byte[] retorno = new byte[6];
+        right = funcaoInterna(right, chave, round);
+
+        // xor entre os lados
+        int i = 0;
+        for (byte b : left) {
+            retorno[i] = (byte) (b ^ right[i++]);
+        }
 
         return retorno;
     }
+
+    private static byte[] funcaoInterna(byte[] right, String[] chave, int round) {
+        byte[] retorno = new byte[6];
+        byte[] chaveBytes = chave[round].getBytes();
+        int i = 0;
+
+        // função interna
+        for (byte b : right) {
+            retorno[i] = (byte) (b ^ chaveBytes[i++]);
+        }
+
+        // inverter bits
+        i = 0;
+        for (byte b : retorno) {
+            retorno[i++] = (byte) ~b;
+        }
+
+        return retorno;
+    }
+
 }
